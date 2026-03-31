@@ -6,7 +6,8 @@
     "build": "bun build src/index.ts --outdir dist --target node"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.87"
+    "@anthropic-ai/claude-agent-sdk": "^0.2.87",
+    "gray-matter": "^4.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0"
