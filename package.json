@@ -1,0 +1,14 @@
+{
+  "name": "skill-action",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target node"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.87"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}

@@ -1,0 +1,21 @@
+name: Skill Action
+description: Execute an AI agent skill via Claude Agent SDK
+inputs:
+  skill:
+    description: Skill file path relative to .claude/skills/ (e.g. dev/impl)
+    required: true
+  inputs:
+    description: JSON-encoded task inputs
+    required: true
+  sidekick-url:
+    description: MCP server URL for done/reject reporting
+    default: http://127.0.0.1:4312/mcp
+  cwd:
+    description: Working directory for the agent
+    required: false
+outputs:
+  result:
+    description: Agent output text
+runs:
+  using: node20
+  main: dist/index.js
