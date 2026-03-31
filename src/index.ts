@@ -2,28 +2,11 @@ import { readFileSync, appendFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import matter from "gray-matter";
 import { query, type ResultMessage } from "@anthropic-ai/claude-agent-sdk";
+import { createDefaultVerifier, runIntentGate } from "./intent-gate.js";
 
 // --- Types ---
 
-interface PlainInput {
-  type: "plain";
-  value: string;
-}
-
-interface Citation {
-  type: "transcript" | "uri" | "command";
-  source?: string;
-  command?: string;
-  excerpt: string;
-}
-
-interface EvidencedInput {
-  type: "evidenced";
-  body: string;
-  citations: Citation[];
-}
-
-type InputEntry = PlainInput | EvidencedInput | string;
+import type { InputEntry } from "./types.js";
 
 interface SkillFrontmatter {
   provider?: string;
@@ -130,6 +113,14 @@ async function main() {
     inputs = JSON.parse(inputsJson);
   } catch (e) {
     console.error(`Error: Failed to parse inputs: ${(e as Error).message}`);
+    process.exit(1);
+  }
+
+  // Intent Gate: verify evidenced inputs
+  const verifier = createDefaultVerifier();
+  const gate = await runIntentGate(inputs, verifier);
+  if (gate.isErr()) {
+    console.error(`[skill-action] Intent Gate failed: ${gate.error}`);
     process.exit(1);
   }
 

@@ -3507,7 +3507,7 @@ var require_gray_matter = __commonJS((exports, module) => {
 
 // src/index.ts
 var import_gray_matter = __toESM(require_gray_matter(), 1);
-import { readFileSync as readFileSync2, appendFileSync as appendFileSync2, existsSync as existsSync2 } from "node:fs";
+import { readFileSync as readFileSync3, appendFileSync as appendFileSync2, existsSync as existsSync2 } from "node:fs";
 import { join } from "node:path";
 
 // node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs
@@ -21251,6 +21251,591 @@ function _a({ prompt: $, options: X }) {
   return xU;
 }
 
+// src/intent-gate.ts
+import { readFileSync as readFileSync2 } from "node:fs";
+
+// node_modules/neverthrow/dist/index.cjs.js
+var defaultErrorConfig = {
+  withStackTrace: false
+};
+var createNeverThrowError = (message, result, config = defaultErrorConfig) => {
+  const data = result.isOk() ? { type: "Ok", value: result.value } : { type: "Err", value: result.error };
+  const maybeStack = config.withStackTrace ? new Error().stack : undefined;
+  return {
+    data,
+    message,
+    stack: maybeStack
+  };
+};
+function __awaiter(thisArg, _arguments, P3, generator) {
+  function adopt(value) {
+    return value instanceof P3 ? value : new P3(function(resolve) {
+      resolve(value);
+    });
+  }
+  return new (P3 || (P3 = Promise))(function(resolve, reject) {
+    function fulfilled(value) {
+      try {
+        step(generator.next(value));
+      } catch (e3) {
+        reject(e3);
+      }
+    }
+    function rejected(value) {
+      try {
+        step(generator["throw"](value));
+      } catch (e3) {
+        reject(e3);
+      }
+    }
+    function step(result) {
+      result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+    }
+    step((generator = generator.apply(thisArg, _arguments || [])).next());
+  });
+}
+function __values(o3) {
+  var s3 = typeof Symbol === "function" && Symbol.iterator, m3 = s3 && o3[s3], i3 = 0;
+  if (m3)
+    return m3.call(o3);
+  if (o3 && typeof o3.length === "number")
+    return {
+      next: function() {
+        if (o3 && i3 >= o3.length)
+          o3 = undefined;
+        return { value: o3 && o3[i3++], done: !o3 };
+      }
+    };
+  throw new TypeError(s3 ? "Object is not iterable." : "Symbol.iterator is not defined.");
+}
+function __await(v6) {
+  return this instanceof __await ? (this.v = v6, this) : new __await(v6);
+}
+function __asyncGenerator(thisArg, _arguments, generator) {
+  if (!Symbol.asyncIterator)
+    throw new TypeError("Symbol.asyncIterator is not defined.");
+  var g = generator.apply(thisArg, _arguments || []), i3, q2 = [];
+  return i3 = Object.create((typeof AsyncIterator === "function" ? AsyncIterator : Object).prototype), verb("next"), verb("throw"), verb("return", awaitReturn), i3[Symbol.asyncIterator] = function() {
+    return this;
+  }, i3;
+  function awaitReturn(f3) {
+    return function(v6) {
+      return Promise.resolve(v6).then(f3, reject);
+    };
+  }
+  function verb(n3, f3) {
+    if (g[n3]) {
+      i3[n3] = function(v6) {
+        return new Promise(function(a3, b) {
+          q2.push([n3, v6, a3, b]) > 1 || resume(n3, v6);
+        });
+      };
+      if (f3)
+        i3[n3] = f3(i3[n3]);
+    }
+  }
+  function resume(n3, v6) {
+    try {
+      step(g[n3](v6));
+    } catch (e3) {
+      settle(q2[0][3], e3);
+    }
+  }
+  function step(r3) {
+    r3.value instanceof __await ? Promise.resolve(r3.value.v).then(fulfill, reject) : settle(q2[0][2], r3);
+  }
+  function fulfill(value) {
+    resume("next", value);
+  }
+  function reject(value) {
+    resume("throw", value);
+  }
+  function settle(f3, v6) {
+    if (f3(v6), q2.shift(), q2.length)
+      resume(q2[0][0], q2[0][1]);
+  }
+}
+function __asyncDelegator(o3) {
+  var i3, p;
+  return i3 = {}, verb("next"), verb("throw", function(e3) {
+    throw e3;
+  }), verb("return"), i3[Symbol.iterator] = function() {
+    return this;
+  }, i3;
+  function verb(n3, f3) {
+    i3[n3] = o3[n3] ? function(v6) {
+      return (p = !p) ? { value: __await(o3[n3](v6)), done: false } : f3 ? f3(v6) : v6;
+    } : f3;
+  }
+}
+function __asyncValues(o3) {
+  if (!Symbol.asyncIterator)
+    throw new TypeError("Symbol.asyncIterator is not defined.");
+  var m3 = o3[Symbol.asyncIterator], i3;
+  return m3 ? m3.call(o3) : (o3 = typeof __values === "function" ? __values(o3) : o3[Symbol.iterator](), i3 = {}, verb("next"), verb("throw"), verb("return"), i3[Symbol.asyncIterator] = function() {
+    return this;
+  }, i3);
+  function verb(n3) {
+    i3[n3] = o3[n3] && function(v6) {
+      return new Promise(function(resolve, reject) {
+        v6 = o3[n3](v6), settle(resolve, reject, v6.done, v6.value);
+      });
+    };
+  }
+  function settle(resolve, reject, d, v6) {
+    Promise.resolve(v6).then(function(v9) {
+      resolve({ value: v9, done: d });
+    }, reject);
+  }
+}
+class ResultAsync {
+  constructor(res) {
+    this._promise = res;
+  }
+  static fromSafePromise(promise) {
+    const newPromise = promise.then((value) => new Ok(value));
+    return new ResultAsync(newPromise);
+  }
+  static fromPromise(promise, errorFn) {
+    const newPromise = promise.then((value) => new Ok(value)).catch((e3) => new Err(errorFn(e3)));
+    return new ResultAsync(newPromise);
+  }
+  static fromThrowable(fn, errorFn) {
+    return (...args) => {
+      return new ResultAsync((() => __awaiter(this, undefined, undefined, function* () {
+        try {
+          return new Ok(yield fn(...args));
+        } catch (error) {
+          return new Err(errorFn ? errorFn(error) : error);
+        }
+      }))());
+    };
+  }
+  static combine(asyncResultList) {
+    return combineResultAsyncList(asyncResultList);
+  }
+  static combineWithAllErrors(asyncResultList) {
+    return combineResultAsyncListWithAllErrors(asyncResultList);
+  }
+  map(f3) {
+    return new ResultAsync(this._promise.then((res) => __awaiter(this, undefined, undefined, function* () {
+      if (res.isErr()) {
+        return new Err(res.error);
+      }
+      return new Ok(yield f3(res.value));
+    })));
+  }
+  andThrough(f3) {
+    return new ResultAsync(this._promise.then((res) => __awaiter(this, undefined, undefined, function* () {
+      if (res.isErr()) {
+        return new Err(res.error);
+      }
+      const newRes = yield f3(res.value);
+      if (newRes.isErr()) {
+        return new Err(newRes.error);
+      }
+      return new Ok(res.value);
+    })));
+  }
+  andTee(f3) {
+    return new ResultAsync(this._promise.then((res) => __awaiter(this, undefined, undefined, function* () {
+      if (res.isErr()) {
+        return new Err(res.error);
+      }
+      try {
+        yield f3(res.value);
+      } catch (e3) {}
+      return new Ok(res.value);
+    })));
+  }
+  orTee(f3) {
+    return new ResultAsync(this._promise.then((res) => __awaiter(this, undefined, undefined, function* () {
+      if (res.isOk()) {
+        return new Ok(res.value);
+      }
+      try {
+        yield f3(res.error);
+      } catch (e3) {}
+      return new Err(res.error);
+    })));
+  }
+  mapErr(f3) {
+    return new ResultAsync(this._promise.then((res) => __awaiter(this, undefined, undefined, function* () {
+      if (res.isOk()) {
+        return new Ok(res.value);
+      }
+      return new Err(yield f3(res.error));
+    })));
+  }
+  andThen(f3) {
+    return new ResultAsync(this._promise.then((res) => {
+      if (res.isErr()) {
+        return new Err(res.error);
+      }
+      const newValue = f3(res.value);
+      return newValue instanceof ResultAsync ? newValue._promise : newValue;
+    }));
+  }
+  orElse(f3) {
+    return new ResultAsync(this._promise.then((res) => __awaiter(this, undefined, undefined, function* () {
+      if (res.isErr()) {
+        return f3(res.error);
+      }
+      return new Ok(res.value);
+    })));
+  }
+  match(ok, _err) {
+    return this._promise.then((res) => res.match(ok, _err));
+  }
+  unwrapOr(t) {
+    return this._promise.then((res) => res.unwrapOr(t));
+  }
+  safeUnwrap() {
+    return __asyncGenerator(this, arguments, function* safeUnwrap_1() {
+      return yield __await(yield __await(yield* __asyncDelegator(__asyncValues(yield __await(this._promise.then((res) => res.safeUnwrap()))))));
+    });
+  }
+  then(successCallback, failureCallback) {
+    return this._promise.then(successCallback, failureCallback);
+  }
+  [Symbol.asyncIterator]() {
+    return __asyncGenerator(this, arguments, function* _a2() {
+      const result = yield __await(this._promise);
+      if (result.isErr()) {
+        yield yield __await(errAsync(result.error));
+      }
+      return yield __await(result.value);
+    });
+  }
+}
+function errAsync(err) {
+  return new ResultAsync(Promise.resolve(new Err(err)));
+}
+var fromPromise = ResultAsync.fromPromise;
+var fromSafePromise = ResultAsync.fromSafePromise;
+var fromAsyncThrowable = ResultAsync.fromThrowable;
+var combineResultList = (resultList) => {
+  let acc = ok([]);
+  for (const result of resultList) {
+    if (result.isErr()) {
+      acc = err(result.error);
+      break;
+    } else {
+      acc.map((list) => list.push(result.value));
+    }
+  }
+  return acc;
+};
+var combineResultAsyncList = (asyncResultList) => ResultAsync.fromSafePromise(Promise.all(asyncResultList)).andThen(combineResultList);
+var combineResultListWithAllErrors = (resultList) => {
+  let acc = ok([]);
+  for (const result of resultList) {
+    if (result.isErr() && acc.isErr()) {
+      acc.error.push(result.error);
+    } else if (result.isErr() && acc.isOk()) {
+      acc = err([result.error]);
+    } else if (result.isOk() && acc.isOk()) {
+      acc.value.push(result.value);
+    }
+  }
+  return acc;
+};
+var combineResultAsyncListWithAllErrors = (asyncResultList) => ResultAsync.fromSafePromise(Promise.all(asyncResultList)).andThen(combineResultListWithAllErrors);
+var $Result = undefined;
+(function(Result) {
+  function fromThrowable(fn, errorFn) {
+    return (...args) => {
+      try {
+        const result = fn(...args);
+        return ok(result);
+      } catch (e3) {
+        return err(errorFn ? errorFn(e3) : e3);
+      }
+    };
+  }
+  Result.fromThrowable = fromThrowable;
+  function combine(resultList) {
+    return combineResultList(resultList);
+  }
+  Result.combine = combine;
+  function combineWithAllErrors(resultList) {
+    return combineResultListWithAllErrors(resultList);
+  }
+  Result.combineWithAllErrors = combineWithAllErrors;
+})($Result || ($Result = {}));
+function ok(value) {
+  return new Ok(value);
+}
+function err(err2) {
+  return new Err(err2);
+}
+class Ok {
+  constructor(value) {
+    this.value = value;
+  }
+  isOk() {
+    return true;
+  }
+  isErr() {
+    return !this.isOk();
+  }
+  map(f3) {
+    return ok(f3(this.value));
+  }
+  mapErr(_f) {
+    return ok(this.value);
+  }
+  andThen(f3) {
+    return f3(this.value);
+  }
+  andThrough(f3) {
+    return f3(this.value).map((_value) => this.value);
+  }
+  andTee(f3) {
+    try {
+      f3(this.value);
+    } catch (e3) {}
+    return ok(this.value);
+  }
+  orTee(_f) {
+    return ok(this.value);
+  }
+  orElse(_f) {
+    return ok(this.value);
+  }
+  asyncAndThen(f3) {
+    return f3(this.value);
+  }
+  asyncAndThrough(f3) {
+    return f3(this.value).map(() => this.value);
+  }
+  asyncMap(f3) {
+    return ResultAsync.fromSafePromise(f3(this.value));
+  }
+  unwrapOr(_v) {
+    return this.value;
+  }
+  match(ok2, _err) {
+    return ok2(this.value);
+  }
+  safeUnwrap() {
+    const value = this.value;
+    return function* () {
+      return value;
+    }();
+  }
+  _unsafeUnwrap(_3) {
+    return this.value;
+  }
+  _unsafeUnwrapErr(config) {
+    throw createNeverThrowError("Called `_unsafeUnwrapErr` on an Ok", this, config);
+  }
+  *[Symbol.iterator]() {
+    return this.value;
+  }
+}
+
+class Err {
+  constructor(error) {
+    this.error = error;
+  }
+  isOk() {
+    return false;
+  }
+  isErr() {
+    return !this.isOk();
+  }
+  map(_f) {
+    return err(this.error);
+  }
+  mapErr(f3) {
+    return err(f3(this.error));
+  }
+  andThrough(_f) {
+    return err(this.error);
+  }
+  andTee(_f) {
+    return err(this.error);
+  }
+  orTee(f3) {
+    try {
+      f3(this.error);
+    } catch (e3) {}
+    return err(this.error);
+  }
+  andThen(_f) {
+    return err(this.error);
+  }
+  orElse(f3) {
+    return f3(this.error);
+  }
+  asyncAndThen(_f) {
+    return errAsync(this.error);
+  }
+  asyncAndThrough(_f) {
+    return errAsync(this.error);
+  }
+  asyncMap(_f) {
+    return errAsync(this.error);
+  }
+  unwrapOr(v6) {
+    return v6;
+  }
+  match(_ok, err2) {
+    return err2(this.error);
+  }
+  safeUnwrap() {
+    const error = this.error;
+    return function* () {
+      yield err(error);
+      throw new Error("Do not use this generator out of `safeTry`");
+    }();
+  }
+  _unsafeUnwrap(config) {
+    throw createNeverThrowError("Called `_unsafeUnwrap` on an Err", this, config);
+  }
+  _unsafeUnwrapErr(_3) {
+    return this.error;
+  }
+  *[Symbol.iterator]() {
+    const self2 = this;
+    yield self2;
+    return self2;
+  }
+}
+var fromThrowable = $Result.fromThrowable;
+var $err = err;
+var $ok = ok;
+
+// src/intent-gate.ts
+function createDefaultVerifier() {
+  return async (inputs, transcriptPath) => {
+    const results = [];
+    for (const { key, entry } of Object.values(inputs)) {
+      for (const citation of entry.citations) {
+        if (!citation.excerpt)
+          continue;
+        results.push(await verifyCitation(key, citation, transcriptPath));
+      }
+    }
+    return results;
+  };
+}
+async function runIntentGate(inputs, verifier, transcriptPath) {
+  const evidenced = {};
+  for (const [k3, entry] of Object.entries(inputs)) {
+    if (entry.type === "evidenced")
+      evidenced[k3] = { entry, key: k3 };
+  }
+  if (Object.keys(evidenced).length === 0)
+    return $ok(undefined);
+  const results = await verifier(evidenced, transcriptPath);
+  const failed = results.filter((r3) => !r3.ok && !!r3.detail);
+  if (failed.length > 0) {
+    return $err(`Intent Gate failed: ${failed.map((r3) => `${r3.key}: ${r3.detail}`).join("; ")}`);
+  }
+  return $ok(undefined);
+}
+async function verifyCitation(key, citation, transcriptPath) {
+  if (citation.type === "transcript") {
+    return verifyTextFile(key, citation, transcriptPath);
+  }
+  if (citation.type === "command") {
+    return { key, citation, ok: true };
+  }
+  if (isFilePath(citation.source)) {
+    if (!isTextFile(citation.source)) {
+      return { key, citation, ok: true };
+    }
+    return verifyTextFile(key, citation, citation.source);
+  }
+  return verifyUri(key, citation);
+}
+function verifyTextFile(key, citation, path) {
+  if (!path) {
+    return { key, citation, ok: false, detail: "source path not available" };
+  }
+  let content;
+  try {
+    content = readFileSync2(path, "utf-8");
+  } catch {
+    return { key, citation, ok: false, detail: `cannot read: ${path}` };
+  }
+  const found = content.includes(citation.excerpt);
+  return { key, citation, ok: found, detail: found ? undefined : `excerpt not found in ${path}` };
+}
+async function verifyUri(key, citation) {
+  try {
+    const res = await fetch(citation.source, { method: "HEAD" });
+    if (res.ok)
+      return { key, citation, ok: true };
+    return { key, citation, ok: false, detail: `${citation.source} returned ${res.status}` };
+  } catch {
+    return { key, citation, ok: false, detail: `cannot reach: ${citation.source}` };
+  }
+}
+function isFilePath(source) {
+  return !source.startsWith("http://") && !source.startsWith("https://");
+}
+var TEXT_EXTENSIONS = new Set([
+  ".txt",
+  ".md",
+  ".markdown",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".json",
+  ".jsonl",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".html",
+  ".htm",
+  ".css",
+  ".scss",
+  ".py",
+  ".rb",
+  ".go",
+  ".rs",
+  ".java",
+  ".kt",
+  ".scala",
+  ".c",
+  ".cpp",
+  ".h",
+  ".hpp",
+  ".cs",
+  ".sh",
+  ".bash",
+  ".zsh",
+  ".fish",
+  ".sql",
+  ".graphql",
+  ".gql",
+  ".xml",
+  ".svg",
+  ".csv",
+  ".tsv",
+  ".env",
+  ".ini",
+  ".cfg",
+  ".conf",
+  ".lock",
+  ".log",
+  ".vue",
+  ".svelte",
+  ".astro"
+]);
+function isTextFile(path) {
+  const dot = path.lastIndexOf(".");
+  if (dot === -1)
+    return false;
+  return TEXT_EXTENSIONS.has(path.slice(dot).toLowerCase());
+}
+
 // src/index.ts
 function getInput(name, required = false) {
   const val = process.env[`INPUT_${name.toUpperCase().replace(/-/g, "_")}`] ?? "";
@@ -21330,7 +21915,7 @@ async function main() {
     console.error(`Error: Skill file not found: ${skillPath}`);
     process.exit(1);
   }
-  const raw = readFileSync2(skillPath, "utf-8");
+  const raw = readFileSync3(skillPath, "utf-8");
   const { data, content } = import_gray_matter.default(raw);
   const frontmatter = data;
   const body = content.trim();
@@ -21339,6 +21924,12 @@ async function main() {
     inputs = JSON.parse(inputsJson);
   } catch (e3) {
     console.error(`Error: Failed to parse inputs: ${e3.message}`);
+    process.exit(1);
+  }
+  const verifier = createDefaultVerifier();
+  const gate = await runIntentGate(inputs, verifier);
+  if (gate.isErr()) {
+    console.error(`[skill-action] Intent Gate failed: ${gate.error}`);
     process.exit(1);
   }
   const providerName = frontmatter.provider ?? "claude";
